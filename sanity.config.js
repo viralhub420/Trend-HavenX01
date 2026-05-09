@@ -113,27 +113,95 @@ export default defineConfig({
   basePath: '/studio',
   plugins: [deskTool()],
   schema: {
-    types: [
-      {
-        name: 'post',
-        type: 'document',
-        title: 'Blog Post',
-        fields: [
-          {
-            name: 'seoAnalyzer',
-            title: 'SEO Checklist',
-            type: 'string',
-            components: { field: SEOAnalyzer },
-            readOnly: true
+  types: [
+    {
+      name: 'post',
+      type: 'document',
+      title: 'Blog Post',
+      fields: [
+        {
+          name: 'seoAnalyzer',
+          title: 'SEO Checklist',
+          type: 'string',
+          components: { field: SEOAnalyzer },
+          readOnly: true
+        },
+        { name: 'title', type: 'string', title: 'Title' },
+        { name: 'mainKeyword', type: 'string', title: 'Focus Keyword' },
+        { name: 'slug', type: 'slug', options: { source: 'title' } },
+
+        // ১. ক্যাটাগরি অপশন (Category)
+        {
+          name: 'category',
+          type: 'string',
+          title: 'Category',
+          options: {
+            list: [
+              { title: 'AI Tools', value: 'ai-tools' },
+              { title: 'Make Money Online', value: 'make-money' },
+              { title: 'Health & Wellness', value: 'health' },
+              { title: 'Tech News', value: 'tech-news' }
+            ],
           },
-          { name: 'title', type: 'string', title: 'Title' },
-          { name: 'mainKeyword', type: 'string', title: 'Focus Keyword' },
-          { name: 'slug', type: 'slug', options: { source: 'title' } },
-          { name: 'mainImage', type: 'image', options: { hotspot: true }, fields: [{ name: 'alt', type: 'string', title: 'Alt Text' }] },
-          { name: 'body', type: 'array', of: [{ type: 'block' }, { type: 'image', fields: [{ name: 'alt', type: 'string' }] }] },
-          { name: 'description', type: 'text', title: 'Meta Description' }
-        ]
-      }
-    ]
+        },
+
+        // ২. ট্যাগ অপশন (Tags)
+        {
+          name: 'tags',
+          type: 'array',
+          title: 'Tags',
+          of: [{ type: 'string' }],
+          options: { layout: 'tags' }
+        },
+
+        { name: 'mainImage', type: 'image', options: { hotspot: true }, fields: [{ name: 'alt', type: 'string', title: 'Alt Text' }] },
+
+        // ৩. ইন্টারনাল ও এক্সটারনাল লিংক অপশন (Body-র ভেতর)
+        { 
+          name: 'body', 
+          type: 'array', 
+          title: 'Content Body',
+          of: [
+            { 
+              type: 'block',
+              marks: {
+                annotations: [
+                  // এক্সটারনাল লিংক (External Link)
+                  {
+                    name: 'link',
+                    type: 'object',
+                    title: 'External Link',
+                    fields: [
+                      {
+                        name: 'href',
+                        type: 'url',
+                        title: 'URL'
+                      }
+                    ]
+                  },
+                  // ইন্টারনাল লিংক (Internal Link - অন্য পোস্টের সাথে কানেক্ট করার জন্য)
+                  {
+                    name: 'internalLink',
+                    type: 'object',
+                    title: 'Internal Link',
+                    fields: [
+                      {
+                        name: 'reference',
+                        type: 'reference',
+                        title: 'Reference',
+                        to: [{ type: 'post' }] 
+                      }
+                    ]
+                  }
+                ]
+              }
+            }, 
+            { type: 'image', fields: [{ name: 'alt', type: 'string' }] }
+          ] 
+        },
+
+        { name: 'description', type: 'text', title: 'Meta Description' }
+      ]
+    }
+  ]
   }
-})
