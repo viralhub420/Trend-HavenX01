@@ -3,80 +3,96 @@ import { deskTool } from 'sanity/desk'
 import React, { useMemo } from 'react'
 import { useFormValue } from 'sanity'
 
-// SEO Analyzer Component
+// --- RANK MATH STYLE SEO ANALYZER START ---
 const SEOAnalyzer = () => {
-  // useFormValue ব্যবহার করলে টাইপ করার সাথে সাথে ভ্যালু আপডেট হবে
   const title = useFormValue(['title']) || ''
   const description = useFormValue(['description']) || ''
   const body = useFormValue(['body']) || []
   const mainKeyword = useFormValue(['mainKeyword']) || ''
+  const slug = useFormValue(['slug'])?.current || ''
 
-  // শব্দ সংখ্যা এবং কন্টেন্ট প্রসেসিং
-  const { wordCount, density, text } = useMemo(() => {
-    const plainText = body
-      .map(block => 
-        block._type === 'block' 
-          ? block.children.map(child => child.text).join('') 
-          : ''
-      )
-      .join(' ')
+  const analysis = useMemo(() => {
+    let plainText = ''
+    let h2Count = 0
+    let h3Count = 0
+    let hasLinks = false
+    let hasImages = false
+    let imagesWithoutAlt = 0
+
+    body.forEach(block => {
+      if (block._type === 'block') {
+        const blockText = block.children.map(child => child.text).join('')
+        plainText += ' ' + blockText
+        if (block.style === 'h2') h2Count++
+        if (block.style === 'h3') h3Count++
+        if (JSON.stringify(block).includes('link')) hasLinks = true
+      }
+      if (block._type === 'image') {
+        hasImages = true
+        if (!block.alt) imagesWithoutAlt++
+      }
+    })
+
+    const wordCount = plainText.trim() ? plainText.trim().split(/\s+/).length : 0
+    const keywordLower = mainKeyword.toLowerCase()
     
-    const count = plainText.trim() ? plainText.trim().split(/\s+/).length : 0
-    
-    let keyDensity = 0
-    if (mainKeyword && count > 0) {
-      const regex = new RegExp(`\\b${mainKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
-      const matches = (plainText.match(regex) || []).length
-      keyDensity = ((matches / count) * 100).toFixed(2)
-    }
+    // BASIC SEO CHECKS
+    const basicSEO = [
+      { label: "Focus Keyword in SEO Title", status: title.toLowerCase().includes(keywordLower) },
+      { label: "Focus Keyword inside Meta Description", status: description.toLowerCase().includes(keywordLower) },
+      { label: "Focus Keyword used in the URL", status: slug.includes(keywordLower.replace(/\s+/g, '-')) },
+      { label: "Content is long enough (2500+ words)", status: wordCount >= 2500 },
+    ]
 
-    return { wordCount: count, density: keyDensity, text: plainText }
-  }, [body, mainKeyword])
+    // ADDITIONAL CHECKS
+    const additional = [
+      { label: "Focus Keyword found in Subheading(s)", status: h2Count > 0 && plainText.toLowerCase().includes(keywordLower) },
+      { label: "Add an image with Focus Keyword as Alt text", status: hasImages && imagesWithoutAlt === 0 },
+      { label: "Keyword Density (Target: 0.5% - 1.5%)", status: wordCount > 0 && (plainText.match(new RegExp(keywordLower, 'gi')) || []).length / wordCount * 100 >= 0.5 },
+      { label: "Link out to external resources", status: hasLinks },
+    ]
 
-  // স্কোর ক্যালকুলেশন
-  let score = 0
-  if (title.length > 10) score += 20
-  if (description.length >= 50 && description.length <= 140) score += 20
-  if (wordCount >= 2500) score += 30
-  if (density >= 0.5 && density <= 1.5) score += 30
+    const totalChecks = [...basicSEO, ...additional]
+    const passCount = totalChecks.filter(c => c.status).length
+    const score = Math.round((passCount / totalChecks.length) * 100)
+
+    return { wordCount, score, basicSEO, additional }
+  }, [body, title, description, mainKeyword, slug])
+
+  const renderSection = (title, items) => (
+    <div style={{ marginBottom: '15px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 'bold', borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '8px', color: '#555', textTransform: 'uppercase' }}>{title}</div>
+      {items.map((item, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', fontSize: '12px', marginBottom: '6px' }}>
+          <span style={{ marginRight: '8px' }}>{item.status ? '✅' : '❌'}</span>
+          <span style={{ color: item.status ? '#2e7d32' : '#d32f2f' }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
+  )
 
   return (
-    <div style={{ 
-      padding: '15px', 
-      backgroundColor: '#f8fafc', 
-      borderRadius: '8px', 
-      border: '1px solid #e2e8f0',
-      marginBottom: '20px'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-        <strong style={{ color: '#334155' }}>SEO Performance</strong>
+    <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #cfd8dc', marginBottom: '20px', fontFamily: 'sans-serif' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', margin: 0, color: '#1a1a1a' }}>Rank Math SEO</h2>
         <div style={{ 
-          padding: '4px 12px', 
-          borderRadius: '20px', 
-          backgroundColor: score > 70 ? '#dcfce7' : '#fef9c3',
-          color: score > 70 ? '#166534' : '#854d0e',
-          fontWeight: 'bold',
-          fontSize: '14px'
+          width: '55px', height: '55px', borderRadius: '50%', border: `4px solid ${analysis.score > 80 ? '#4caf50' : analysis.score > 50 ? '#ffa000' : '#f44336'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '16px', color: '#333'
         }}>
-          Score: {score}/100
+          {analysis.score}
         </div>
       </div>
-      <ul style={{ fontSize: '13px', listStyle: 'none', padding: 0, margin: 0 }}>
-        <li style={{ marginBottom: '5px' }}>
-          {wordCount >= 2500 ? '✅' : '❌'} <strong>শব্দ সংখ্যা:</strong> {wordCount} (লক্ষ্য: ২৫০০)
-        </li>
-        <li>
-          {density >= 0.5 && density <= 1.5 ? '✅' : '⚠️'} <strong>কিউওয়ার্ড ডেনসিটি:</strong> {density}%
-        </li>
-      </ul>
-      {wordCount < 2500 && (
-        <p style={{ fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
-          * র‍্যাঙ্কিংয়ের জন্য অন্তত ২৫০০ শব্দ লিখুন।
-        </p>
-      )}
+
+      {renderSection("Basic SEO", analysis.basicSEO)}
+      {renderSection("Additional", analysis.additional)}
+
+      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dotted #ccc', fontSize: '11px', color: '#78909c' }}>
+        <strong>Words:</strong> {analysis.wordCount} | <strong>Target:</strong> 2500 for USA/UK
+      </div>
     </div>
   )
 }
+// --- RANK MATH STYLE SEO ANALYZER END ---
 
 export default defineConfig({
   name: 'default',
