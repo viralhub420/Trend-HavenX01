@@ -8,33 +8,55 @@ const client = createClient({
   apiVersion: '2023-01-01',
 })
 
-// স্যানিটির ডেটাগুলো (ছবি, লিংক) ব্লগে দেখানোর জন্য এই কম্পোনেন্টগুলো দরকার
+// স্যানিটির বডি কন্টেন্টের ভেতর ছবি, লিংক ইত্যাদি দেখানোর জন্য সঠিক কম্পোনেন্ট
 const components = {
   types: {
-    // পোস্টের মাঝখানে ছবি দেখানোর জন্য
     image: ({ value }) => {
+      // স্যানিটি থেকে ইমেজের সঠিক URL তৈরি করার সহজ পদ্ধতি
+      if (!value?.asset?._ref) return null;
+      
+      const id = value.asset._ref
+        .replace('image-', '')
+        .replace('-jpg', '.jpg')
+        .replace('-png', '.png')
+        .replace('-webp', '.webp');
+      const imageUrl = `https://cdn.sanity.io/images/y1nsnm6h/production/${id}`;
+
       return (
-        <div style={{ margin: '30px 0', textAlign: 'center' }}>
+        <div style={{ margin: '40px 0', textAlign: 'center' }}>
           <img
-            src={client.fetch(`*[_id == $id][0].url`, { id: value.asset._ref })}
+            src={imageUrl}
             alt={value.alt || 'Trend HavenX Blog Image'}
-            style={{ width: '100%', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+            style={{ 
+              width: '100%', 
+              maxWidth: '800px', 
+              borderRadius: '12px', 
+              boxShadow: '0 10px 15px rgba(0,0,0,0.1)' 
+            }}
           />
-          {value.alt && <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px' }}>{value.alt}</p>}
+          {value.alt && (
+            <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '12px', fontStyle: 'italic' }}>
+              {value.alt}
+            </p>
+          )}
         </div>
       )
     },
   },
   marks: {
-    // এক্সটারনাল লিংকের জন্য
     link: ({ children, value }) => (
-      <a href={value.href} target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+      <a 
+        href={value.href} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        style={{ color: '#0070f3', textDecoration: 'underline' }}
+      >
         {children}
       </a>
     ),
-    // ইন্টারনাল লিংকের জন্য (আপনার সাইটের অন্য পোস্টের লিংক)
     internalLink: ({ children, value }) => {
-      const href = `/blog/${value.reference?._ref}` // এটি স্লাগ অনুযায়ী কাজ করবে
+      // এটি সরাসরি স্লাগ অনুযায়ী কাজ করবে
+      const href = `/blog/${value.reference?._ref}` 
       return (
         <a href={href} style={{ color: '#0070f3', fontWeight: 'bold', textDecoration: 'none' }}>
           {children}
@@ -47,7 +69,7 @@ const components = {
 export default async function BlogPost({ params }) {
   const { slug } = await params 
   
-  // আমরা এখন ক্যাটাগরি এবং ট্যাগও ফর্চ (fetch) করছি
+  // স্যানিটি থেকে ডাটা ফেচ করা
   const post = await client.fetch(`*[_type == "post" && slug.current == $slug][0]{
     title,
     body,
@@ -66,35 +88,44 @@ export default async function BlogPost({ params }) {
     <article style={{ padding: '20px', maxWidth: '850px', margin: '0 auto', fontFamily: 'system-ui, sans-serif', lineHeight: '1.8' }}>
       
       {/* ক্যাটাগরি প্রদর্শন */}
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-         <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '5px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
-            {post.category || 'General'}
-         </span>
-      </div>
-
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', color: '#111', textAlign: 'center', fontWeight: '800' }}>{post.title}</h1>
-      
-      {/* ট্যাগগুলো প্রদর্শন */}
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        {post.tags?.map((tag, index) => (
-          <span key={index} style={{ color: '#666', fontSize: '0.9rem', marginRight: '10px' }}>#{tag}</span>
-        ))}
-      </div>
-
-      {post.imageUrl && (
-        <img 
-          src={post.imageUrl} 
-          alt={post.imageAlt || post.title} 
-          style={{ width: '100%', borderRadius: '16px', marginBottom: '40px', boxShadow: '0 10px 15px rgba(0,0,0,0.05)' }} 
-        />
+      {post.category && (
+        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+           <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '6px 16px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+              {post.category}
+           </span>
+        </div>
       )}
 
-      {/* এই অংশটিই আপনার স্যানিটির সব কন্টেন্ট (টেক্সট, ছবি, লিংক) সুন্দরভাবে দেখাবে */}
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', color: '#111', textAlign: 'center', fontWeight: '800' }}>
+        {post.title}
+      </h1>
+      
+      {/* ট্যাগগুলো প্রদর্শন */}
+      {post.tags && (
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          {post.tags.map((tag, index) => (
+            <span key={index} style={{ color: '#666', fontSize: '0.9rem', margin: '0 8px', display: 'inline-block' }}>#{tag}</span>
+          ))}
+        </div>
+      )}
+
+      {/* মেইন ইমেজ */}
+      {post.imageUrl && (
+        <div style={{ marginBottom: '40px' }}>
+          <img 
+            src={post.imageUrl} 
+            alt={post.imageAlt || post.title} 
+            style={{ width: '100%', borderRadius: '16px', boxShadow: '0 10px 15px rgba(0,0,0,0.05)' }} 
+          />
+        </div>
+      )}
+
+      {/* বডি কন্টেন্ট (টেক্সট, মাঝখানের ছবি ও লিংক) */}
       <div style={{ fontSize: '1.2rem', color: '#2d3748' }}>
         <PortableText value={post.body} components={components} />
       </div>
 
-      <div style={{ marginTop: '60px', borderTop: '2px solid #f7f7f7', paddingTop: '30px', textAlign: 'center' }}>
+      <div style={{ marginTop: '60px', borderTop: '2px solid #f0f0f0', paddingTop: '30px', textAlign: 'center' }}>
         <a href="/" style={{ color: '#0070f3', textDecoration: 'none', fontWeight: 'bold', fontSize: '1.1rem' }}>
           ← Back to Home
         </a>
