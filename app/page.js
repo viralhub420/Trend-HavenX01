@@ -22,7 +22,7 @@ export default async function Home() {
         {posts && posts.length > 0 ? (
           posts.map((post) => (
             <div key={post.slug} style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ddd', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-              <a href={`/blog/${post.slug}`} style={{ fontSize: '1.6rem', color: '#0070f3', textDecoration: 'none', fontWeight: 'bold' }}>
+              <a href={`/${post.slug}`} style={{ fontSize: '1.6rem', color: '#0070f3', textDecoration: 'none', fontWeight: 'bold' }}>
                 {post.title}
               </a>
               <p style={{ color: '#666', marginTop: '10px' }}>Click to read the full article...</p>
