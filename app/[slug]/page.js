@@ -31,19 +31,7 @@ export async function generateMetadata({ params }) {
     },
   };
 }
-if (!post) {
-return {
-title: "Post Not Found",
-description: "This post could not be found."
-};
-}
 
-return {
-title: post.title,
-description: post.description || post.title,
-alternates: {
-canonical: "https://www.trendhavenx.online/${params.slug}",
-},
 openGraph: {
 title: post.title,
 description: post.description || post.title,
