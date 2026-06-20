@@ -7,7 +7,48 @@ const client = createClient({
   useCdn: false,
   apiVersion: '2023-01-01',
 })
+export async function generateMetadata({ params }) {
+const post = await client.fetch(
+"*[_type == "post" && slug.current == $slug][0]{ title, description, "imageUrl": mainImage.asset->url }",
+{ slug: params.slug }
+);
 
+if (!post) {
+return {
+title: "Post Not Found",
+description: "This post could not be found."
+};
+}
+
+return {
+title: post.title,
+description: post.description || post.title,
+alternates: {
+canonical: "https://www.trendhavenx.online/${params.slug}",
+},
+openGraph: {
+title: post.title,
+description: post.description || post.title,
+url: "https://www.trendhavenx.online/${params.slug}",
+type: "article",
+images: post.imageUrl
+? [
+{
+url: post.imageUrl,
+width: 1200,
+height: 630,
+},
+]
+: [],
+},
+twitter: {
+card: "summary_large_image",
+title: post.title,
+description: post.description || post.title,
+images: post.imageUrl ? [post.imageUrl] : [],
+},
+};
+}
 // স্যানিটির বডি কন্টেন্টের ভেতর ছবি, লিংক ইত্যাদি দেখানোর জন্য সঠিক কম্পোনেন্ট
 const components = {
   types: {
@@ -72,6 +113,7 @@ export default async function BlogPost({ params }) {
   // স্যানিটি থেকে ডাটা ফেচ করা
   const post = await client.fetch(`*[_type == "post" && slug.current == $slug][0]{
     title,
+    description,
     body,
     mainKeyword,
     category,
