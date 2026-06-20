@@ -8,11 +8,29 @@ const client = createClient({
   apiVersion: '2023-01-01',
 })
 export async function generateMetadata({ params }) {
-const post = await client.fetch(
-"*[_type == "post" && slug.current == $slug][0]{ title, description, "imageUrl": mainImage.asset->url }",
-{ slug: params.slug }
-);
+  const post = await client.fetch(
+    `*[_type == "post" && slug.current == $slug][0]{
+      title,
+      description,
+      "imageUrl": mainImage.asset->url
+    }`,
+    { slug: params.slug }
+  );
 
+  if (!post) {
+    return {
+      title: "Post Not Found",
+    };
+  }
+
+  return {
+    title: post.title,
+    description: post.description || post.title,
+    alternates: {
+      canonical: `https://www.trendhavenx.online/${params.slug}`,
+    },
+  };
+}
 if (!post) {
 return {
 title: "Post Not Found",
