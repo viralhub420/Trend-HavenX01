@@ -32,29 +32,6 @@ export async function generateMetadata({ params }) {
   };
 }
 
-openGraph: {
-title: post.title,
-description: post.description || post.title,
-url: "https://www.trendhavenx.online/${params.slug}",
-type: "article",
-images: post.imageUrl
-? [
-{
-url: post.imageUrl,
-width: 1200,
-height: 630,
-},
-]
-: [],
-},
-twitter: {
-card: "summary_large_image",
-title: post.title,
-description: post.description || post.title,
-images: post.imageUrl ? [post.imageUrl] : [],
-},
-};
-}
 // স্যানিটির বডি কন্টেন্টের ভেতর ছবি, লিংক ইত্যাদি দেখানোর জন্য সঠিক কম্পোনেন্ট
 const components = {
   types: {
