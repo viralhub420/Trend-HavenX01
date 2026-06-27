@@ -164,12 +164,11 @@ export default defineConfig({
           of: [
             { 
               type: 'block',
-                      styles: [
+              styles: [
           { title: 'Normal', value: 'normal' },
           { title: 'Heading 2', value: 'h2' },
           { title: 'Heading 3', value: 'h3' }
         ],
-
               marks: {
                 annotations: [
                   // এক্সটারনাল লিংক (External Link)
